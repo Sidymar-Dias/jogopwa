@@ -1,0 +1,801 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Aventura do Quebra-Cabeça</title>
+
+    <style>
+        /* Estilos Gerais */
+        body {
+            font-family: sans-serif;
+            margin: 0;
+            background-color: #f0f8ff; /* Azul bem claro */
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh; /* Garante que o body ocupe toda a altura da viewport */
+            overflow-x: hidden; /* Evita rolagem horizontal indesejada */
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        /* Cabeçalho */
+        header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px 20px;
+            background-color: #ffffff;
+            border-bottom: 2px solid #ddd;
+            flex-shrink: 0; /* Impede que o cabeçalho encolha */
+        }
+        .header-emblem, .header-logo {
+            height: 60px;
+        }
+        .game-title {
+            font-family: 'Arial Black', sans-serif; /* Fonte impactante */
+            font-size: 2em; /* Tamanho do título */
+            color: #4CAF50; /* Verde vibrante */
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3); /* Sombra para destaque */
+            margin: 0 20px; /* Espaçamento lateral */
+            white-space: nowrap; /* Evita que o título quebre linha */
+            text-align: center; /* Centraliza o texto */
+            flex-grow: 1; /* Permite que o título ocupe o espaço */
+        }
+
+        /* Barra de Informações Abaixo do Cabeçalho */
+        .info-bar {
+            display: flex;
+            justify-content: space-around; /* Espaço igual entre os elementos */
+            align-items: center; /* Alinha verticalmente ao centro */
+            padding: 15px 20px;
+            background-color: #f9f9f9;
+            border-bottom: 1px solid #ddd;
+            margin-bottom: 20px; /* Espaço abaixo da barra de informações */
+            flex-wrap: wrap; /* Permite que os itens quebrem para baixo em telas menores */
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1); /* Sombra leve para destaque */
+        }
+
+        .info-bar > * {
+            margin: 10px; /* Espaçamento entre os itens dentro da info-bar */
+        }
+
+        .imagem-referencia {
+            width: 150px; /* Ajuste o tamanho conforme necessário */
+            border-radius: 5px;
+            border: 2px solid #ccc;
+            margin-bottom: 0; /* Remova a margem inferior, pois agora está dentro da info-bar */
+            flex-shrink: 0; /* Impede que a imagem encolha muito */
+        }
+
+        .container-info-jogador {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            text-align: center;
+            margin-bottom: 0; /* Remova a margem inferior */
+            flex-shrink: 0; /* Impede que o container de info encolha muito */
+        }
+
+        .avatar-jogador {
+            width: 80px; /* Ajuste o tamanho do avatar */
+            height: 80px;
+            border-radius: 50%;
+            border: 3px solid #007bff;
+            margin-bottom: 10px; /* Reduza a margem inferior do avatar */
+            object-fit: cover;
+            transition: border-color 0.3s ease, box-shadow 0.3s ease;
+        }
+
+        .avatar-jogador.unlocked {
+            border-color: #ffd700; /* Cor dourada para selo desbloqueado */
+            box-shadow: 0 0 15px rgba(255, 215, 0, 0.7); /* Sombra dourada */
+        }
+
+        .placar {
+            font-size: 1em; /* Reduza um pouco a fonte do placar */
+            font-weight: bold;
+            margin-bottom: 10px; /* Reduza a margem inferior do placar */
+        }
+        .placar p {
+            margin: 5px 0;
+        }
+
+        #botao-reiniciar {
+            width: auto; /* Ajusta a largura ao conteúdo */
+            padding: 8px 15px; /* Reduza um pouco o padding do botão */
+            font-size: 0.9em;
+            background-color: #dc3545;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            margin-bottom: 0; /* Remova a margem inferior do botão */
+            transition: background-color 0.3s ease;
+        }
+        #botao-reiniciar:hover {
+            background-color: #c82333;
+        }
+
+        /* Layout Principal do Jogo */
+        .container-principal {
+            display: flex;
+            flex-grow: 1; /* Permite que este container ocupe o espaço restante */
+            padding: 20px;
+            gap: 20px; /* Espaço entre a área de trabalho e outros elementos (se houvesse) */
+            align-items: flex-start; /* Alinha os itens ao topo */
+            justify-content: center; /* Centraliza o conteúdo horizontalmente */
+            overflow-y: auto; /* Adiciona rolagem se o conteúdo for muito alto */
+        }
+
+        /* Área de Trabalho (Quebra-Cabeça) */
+        .area-trabalho {
+            display: flex;
+            flex-direction: row; /* Padrão: tabuleiro e peças lado a lado */
+            gap: 20px;
+            flex-grow: 1; /* Permite que ocupe o máximo de espaço disponível */
+            justify-content: center; /* Centraliza o conteúdo */
+            align-items: flex-start; /* Alinha os itens ao topo */
+            flex-wrap: wrap; /* Permite quebrar linha em telas menores */
+            min-width: 0; /* Garante que flexbox não ignore o min-content */
+        }
+
+        /* Tabuleiro do Quebra-Cabeça */
+        #tabuleiro-quebra-cabeca {
+            display: grid;
+            grid-template-columns: repeat(8, 1fr);
+            grid-template-rows: repeat(5, 1fr);
+            border: 2px solid #333;
+            background-color: #ddd;
+            flex-shrink: 1; /* Permite que o tabuleiro encolha */
+            flex-grow: 1; /* Permite que o tabuleiro cresça */
+
+            /* Tamanho base para desktop, mas com flexibilidade */
+            max-width: 800px; /* Limite máximo para o tabuleiro */
+            width: min(80vw, 800px); /* Usa 80% da largura da viewport ou 800px, o que for menor */
+            aspect-ratio: 8 / 5; /* Mantém a proporção correta (8 colunas por 5 linhas) */
+            margin: auto; /* Centraliza horizontalmente se tiver espaço extra */
+        }
+
+        .espaco-peca {
+            border: 1px solid #ccc;
+        }
+
+        /* Container das Peças */
+        #container-pecas {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); /* Peças com no mínimo 120px */
+            gap: 8px; /* Espaçamento entre as peças */
+            padding: 10px;
+            background-color: #e0e0e0;
+            border-radius: 8px;
+            align-items: start;
+            justify-items: center;
+            flex-shrink: 1; /* Permite que o container de peças encolha */
+            flex-grow: 1; /* Permite que o container de peças cresça */
+            max-width: 400px; /* Limite máximo para o container de peças em desktop */
+            width: min(90vw, 400px); /* 90% da largura da viewport ou 400px, o que for menor */
+            max-height: 500px; /* Altura máxima para desktop, alinhado ao tabuleiro */
+            overflow-y: auto; /* Adiciona rolagem se as peças excederem a altura */
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+            align-self: flex-start; /* Garante que ele se alinhe ao topo quando há outros elementos flexíveis */
+        }
+
+        /* Peça Individual do Quebra-Cabeça */
+        .peca-quebra-cabeca {
+            border: 1px solid #000;
+            cursor: grab;
+            transition: transform 0.2s, box-shadow 0.2s;
+            width: 100%; /* Ocupa 100% da largura da célula do grid */
+            height: 0; /* A altura é controlada pelo padding-bottom */
+            padding-bottom: 100%; /* Torna a peça quadrada (100% da largura) */
+            background-repeat: no-repeat;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+            background-color: #f0f0f0; /* Fundo para peças antes do carregamento da imagem */
+        }
+        .peca-quebra-cabeca:hover {
+            transform: scale(1.1);
+            box-shadow: 0 0 10px rgba(0,0,0,0.5);
+            z-index: 10;
+        }
+
+        /* Rodapé */
+        footer {
+            padding: 15px 20px;
+            text-align: center;
+            background-color: #ffffff;
+            border-top: 2px solid #ddd;
+            flex-shrink: 0;
+            margin-top: auto; /* Empurra o rodapé para o final */
+        }
+        .caixa-mensagem-mapa a {
+            color: #007bff;
+            text-decoration: none;
+            font-weight: bold;
+            font-size: 1.2em;
+        }
+
+        /* Janela Modal de Conclusão */
+        .overlay-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.7);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        }
+        .conteudo-modal {
+            background-color: white;
+            padding: 40px;
+            border-radius: 15px;
+            text-align: center;
+            color: #28a745;
+            border: 5px solid #28a745;
+            max-width: 90%;
+            width: 500px;
+            box-shadow: 0 8px 16px rgba(0,0,0,0.2);
+        }
+        .conteudo-modal h2 {
+            font-size: 2.2em;
+            margin-top: 0;
+        }
+        .conteudo-modal p {
+            color: #333;
+            font-size: 1.2em;
+        }
+        .selo-ganho {
+            width: 100px;
+            height: 100px;
+            margin: 20px 0;
+            animation: pulse 1.5s infinite;
+        }
+        .botao-voltar {
+            display: inline-block;
+            background-color: #007bff;
+            color: white;
+            padding: 12px 25px;
+            text-decoration: none;
+            border-radius: 8px;
+            font-size: 1.2em;
+            margin-top: 20px;
+            border: none;
+            transition: background-color 0.3s ease;
+        }
+        .botao-voltar:hover {
+            background-color: #0056b3;
+        }
+
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.1); }
+            100% { transform: scale(1); }
+        }
+
+        /* Estilos para o Modal de Boas-Vindas */
+        .modal-info {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.7);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 1001; /* Maior que o modal de conclusão */
+        }
+
+        .conteudo-modal-info {
+            background-color: white;
+            padding: 30px;
+            border-radius: 15px;
+            text-align: center;
+            max-width: 90%;
+            width: 600px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+            border: 2px solid #007bff;
+        }
+        .conteudo-modal-info h2 {
+            color: #007bff;
+            font-size: 2em;
+            margin-top: 0;
+            margin-bottom: 15px;
+        }
+        .conteudo-modal-info p {
+            color: #333;
+            font-size: 1.1em;
+            line-height: 1.6;
+            margin-bottom: 20px;
+        }
+        .conteudo-modal-info ul {
+            text-align: left;
+            margin: 0 auto 20px;
+            padding-left: 25px;
+            max-width: 80%;
+            color: #444;
+        }
+        .conteudo-modal-info ul li {
+            margin-bottom: 10px;
+        }
+        .botao-fechar-modal {
+            background-color: #007bff;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 1em;
+            transition: background-color 0.3s ease;
+        }
+        .botao-fechar-modal:hover {
+            background-color: #0056b3;
+        }
+
+        /* Responsividade com Media Queries aprimoradas */
+
+        /* Para telas menores que 1024px (Tablets em modo paisagem, notebooks pequenos) */
+        @media (max-width: 1024px) {
+            .info-bar {
+                flex-direction: row; /* Mantém horizontal */
+                justify-content: space-around;
+                padding: 10px;
+            }
+            .imagem-referencia {
+                width: 120px; /* Reduz o tamanho da imagem de referência */
+            }
+            .container-info-jogador {
+                width: auto; /* Permite que o container de info se ajuste ao conteúdo */
+            }
+
+            .container-principal {
+                flex-direction: column; /* Pilha a barra lateral e a área de trabalho */
+                align-items: center; /* Centraliza a pilha */
+                padding: 15px;
+                gap: 15px;
+            }
+            .area-trabalho {
+                flex-direction: column; /* Tabuleiro e peças em coluna */
+                align-items: center;
+                gap: 15px;
+            }
+            #tabuleiro-quebra-cabeca {
+                width: 95vw; /* Ocupa 95% da largura da viewport */
+                max-width: 700px; /* Limite máximo para tablets */
+                height: auto;
+            }
+            #container-pecas {
+                width: 95vw; /* Ocupa 95% da largura da viewport */
+                max-width: 700px; /* Limite máximo para tablets */
+                max-height: 40vh; /* Altura máxima para rolagem, 40% da altura da viewport */
+                grid-template-columns: repeat(auto-fill, minmax(80px, 1fr)); /* Peças menores */
+            }
+            .game-title {
+                font-size: 1.8em;
+            }
+        }
+
+        /* Para telas menores que 768px (Tablets em modo retrato, celulares grandes) */
+        @media (max-width: 768px) {
+            header {
+                flex-direction: column;
+                padding: 10px;
+            }
+            .game-title {
+                font-size: 1.5em;
+                margin-top: 10px;
+                margin-bottom: 5px;
+            }
+            .header-emblem, .header-logo {
+                height: 50px;
+            }
+            .info-bar {
+                flex-direction: column; /* Volta a ser vertical */
+                align-items: center;
+                gap: 15px; /* Mais espaço entre os elementos na coluna */
+                padding: 10px;
+            }
+            .info-bar > * {
+                margin: 0; /* Remove margem lateral, usa o gap */
+            }
+            .imagem-referencia {
+                width: 80%; /* Ocupa mais largura */
+                max-width: 180px;
+            }
+            .avatar-jogador {
+                width: 70px;
+                height: 70px;
+            }
+            .placar {
+                font-size: 0.9em;
+            }
+            #botao-reiniciar {
+                padding: 6px 12px;
+                font-size: 0.8em;
+            }
+            #tabuleiro-quebra-cabeca {
+                width: 98vw; /* Ainda maior para aproveitar o espaço */
+            }
+            #container-pecas {
+                width: 98vw;
+                padding: 8px;
+                gap: 6px;
+                grid-template-columns: repeat(auto-fill, minmax(70px, 1fr)); /* Peças um pouco menores */
+                max-height: 35vh; /* Altura para rolagem */
+            }
+            .conteudo-modal-info h2, .conteudo-modal h2 {
+                font-size: 1.8em;
+            }
+            .conteudo-modal-info p, .conteudo-modal p {
+                font-size: 1em;
+            }
+            .selo-ganho {
+                width: 80px;
+                height: 80px;
+            }
+            .botao-voltar {
+                padding: 10px 20px;
+                font-size: 1em;
+            }
+        }
+
+        /* Para telas menores que 480px (Celulares pequenos) */
+        @media (max-width: 480px) {
+            .game-title {
+                font-size: 1.2em;
+            }
+            .header-emblem, .header-logo {
+                height: 40px;
+            }
+            .info-bar {
+                padding: 8px;
+                gap: 10px;
+            }
+            .imagem-referencia {
+                max-width: 150px;
+            }
+            .avatar-jogador {
+                width: 60px;
+                height: 60px;
+            }
+            .placar {
+                font-size: 0.8em;
+            }
+            #botao-reiniciar {
+                padding: 5px 10px;
+                font-size: 0.7em;
+            }
+            #tabuleiro-quebra-cabeca {
+                width: 98vw; /* Quase total da tela */
+            }
+            #container-pecas {
+                width: 98vw;
+                padding: 8px;
+                gap: 5px;
+                grid-template-columns: repeat(auto-fill, minmax(60px, 1fr)); /* Peças pequenas */
+                max-height: 30vh; /* Altura para rolagem */
+            }
+            .conteudo-modal-info h2, .conteudo-modal h2 {
+                font-size: 1.5em;
+            }
+            .conteudo-modal-info p, .conteudo-modal p {
+                font-size: 0.9em;
+            }
+            .botao-fechar-modal {
+                padding: 8px 15px;
+                font-size: 0.9em;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <header>
+        <img src="Capa.png" alt="Emblema do Jogo" class="header-emblem">
+        <h1 class="game-title">Quebra-Cabeça</h1>
+        <img src="logo.png" alt="Logo do Jogo" class="header-logo">
+    </header>
+
+    <div class="info-bar">
+        <img src="puzzle.png" alt="Imagem de Referência" class="imagem-referencia">
+        <div class="container-info-jogador">
+            <img src="HPERS.png" alt="Figura do Jogador" class="avatar-jogador" id="playerAvatar">
+            <div class="placar">
+                <p>Acertos: <span id="contador-acertos">0</span></p>
+                <p>Erros: <span id="contador-erros">0</span></p>
+            </div>
+            <button id="botao-reiniciar">Reiniciar a Partida</button>
+        </div>
+    </div>
+
+    <div class="container-principal">
+        <main class="area-trabalho">
+            <div id="tabuleiro-quebra-cabeca">
+            </div>
+            <div id="container-pecas">
+            </div>
+        </main>
+    </div>
+
+    <footer>
+        <div class="caixa-mensagem-mapa">
+            <a href="mapa.html?seal_earned=4">Retornar ao Mapa Principal</a>
+        </div>
+    </footer>
+
+    <div id="modal-boas-vindas" class="modal-info">
+        <div class="conteudo-modal-info">
+            <h2>Bem-vindo à Aventura!</h2>
+            <p>Sua missão é recriar a imagem, colocando cada peça no seu devido lugar. Prepare-se para um desafio que testará sua atenção e raciocínio!</p>
+            <h3>Regras do Jogo:</h3>
+            <ul>
+                <li>Arraste e Solte: Clique e arraste as peças da área inferior para os espaços vazios no tabuleiro principal.</li>
+                <li>Encaixe Perfeito: Cada peça tem um lugar certo. Se a peça não se encaixar no espaço, ela não será fixada, e um "erro" será contabilizado.</li>
+                <li>Imagem Guia: Use a imagem de referência na barra lateral para te ajudar a montar o quebra-cabeça.</li>
+                <li>Pontuação: Seu placar de acertos e erros será atualizado. Tente minimizar os erros!</li>
+                <li>Selo de Conquista: Complete o quebra-cabeça para ganhar um selo exclusivo e avançar em sua jornada!</li>
+            </ul>
+            <button id="botao-comecar-jogo" class="botao-fechar-modal">Começar Jogo</button>
+        </div>
+    </div>
+
+    <div id="modal-conclusao" class="overlay-modal" style="display: none;">
+        <div class="conteudo-modal">
+            <h2>Você conseguiu!! Parabéns!!</h2>
+            <p>Você concluiu com êxito a atividade!</p>
+            <img src="HPERS.png" alt="Selo Conquistado" class="selo-ganho">
+            <p>Clique no botão abaixo para voltar ao mapa e continuar sua jornada!</p>
+            <a href="mapa.html?seal_earned=4" class="botao-voltar">Voltar ao Mapa</a>
+        </div>
+    </div>
+
+    <audio id="som-aplauso" src="aplausos.mp3" preload="auto"></audio>
+    <audio id="som-erro" src="erro.mp3" preload="auto"></audio>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+
+            // --- CONFIGURAÇÕES DO JOGO ---
+            const LINHAS = 5;
+            const COLUNAS = 8;
+            const TOTAL_PECAS = LINHAS * COLUNAS;
+            const NOME_IMAGEM_QUEBRA_CABECAS = 'puzzle.png';
+            const NOME_SELO_GANHO = 'HPERS.png';
+            const ID_SELO = '4'; // ID único para salvar no navegador para este selo (Perseverança)
+
+            // --- ESTES VALORES SÃO CRUCIAIS! SUBSTITUA PELAS DIMENSÕES REAIS DA SUA IMAGEM 'puzzle.png' ---
+            // EX: se 'puzzle.png' tem 800px de largura e 500px de altura
+            const ORIGINAL_IMAGE_WIDTH = 800; // <<< SUBSTITUA PELO VALOR REAL DA LARGURA DA SUA IMAGEM
+            const ORIGINAL_IMAGE_HEIGHT = 500; // <<< SUBSTITUA PELO VALOR REAL DA ALTURA DA SUA IMAGEM
+            // -----------------------------------------------------------------------------------------
+
+            // --- ELEMENTOS DO DOM ---
+            const tabuleiro = document.getElementById('tabuleiro-quebra-cabeca');
+            const containerPecas = document.getElementById('container-pecas');
+            const contadorAcertosEl = document.getElementById('contador-acertos');
+            const contadorErrosEl = document.getElementById('contador-erros');
+            const botaoReiniciar = document.getElementById('botao-reiniciar');
+            const modalConclusao = document.getElementById('modal-conclusao');
+            const somAplauso = document.getElementById('som-aplauso');
+            const modalBoasVindas = document.getElementById('modal-boas-vindas');
+            const botaoComecarJogo = document.getElementById('botao-comecar-jogo');
+            const somErro = document.getElementById('som-erro');
+            const playerAvatar = document.getElementById('playerAvatar');
+
+            // --- ESTADO DO JOGO ---
+            let acertos = 0;
+            let erros = 0;
+            let pecaArrastada = null;
+
+            // --- FUNÇÕES PRINCIPAIS ---
+
+            function inicializarJogo() {
+                acertos = 0;
+                erros = 0;
+                atualizarPlacar();
+
+                tabuleiro.innerHTML = '';
+                containerPecas.innerHTML = '';
+                modalConclusao.style.display = 'none';
+
+                let pecas = [];
+                for (let i = 0; i < TOTAL_PECAS; i++) {
+                    const espaco = document.createElement('div');
+                    espaco.classList.add('espaco-peca');
+                    espaco.dataset.id = i; // ID do espaço
+                    tabuleiro.appendChild(espaco);
+
+                    espaco.addEventListener('dragover', aoArrastarSobre);
+                    espaco.addEventListener('drop', aoSoltar);
+
+                    const peca = document.createElement('div');
+                    peca.classList.add('peca-quebra-cabeca');
+                    peca.dataset.id = i; // ID da peça (corresponde ao ID do espaço correto)
+                    peca.draggable = true;
+
+                    // Calcula a posição do background para cada pedaço da imagem
+                    const col = i % COLUNAS;
+                    const lin = Math.floor(i / COLUNAS);
+
+                    // Dimensões de cada pedaço da imagem original
+                    const pecaLarguraOriginal = ORIGINAL_IMAGE_WIDTH / COLUNAS;
+                    const pecaAlturaOriginal = ORIGINAL_IMAGE_HEIGHT / LINHAS;
+
+                    // Define o background-image (URL da imagem completa)
+                    peca.style.backgroundImage = `url('${NOME_IMAGEM_QUEBRA_CABECAS}')`;
+                    
+                    // Define o background-size para o tamanho total da imagem original
+                    // Isso é crucial para que o background-position funcione corretamente
+                    peca.style.backgroundSize = `${ORIGINAL_IMAGE_WIDTH}px ${ORIGINAL_IMAGE_HEIGHT}px`;
+                    
+                    // Define o background-position para mostrar a parte correta da imagem
+                    peca.style.backgroundPosition = `-${col * pecaLarguraOriginal}px -${lin * pecaAlturaOriginal}px`;
+
+                    peca.addEventListener('dragstart', aoArrastar);
+                    pecas.push(peca);
+                }
+
+                pecas.sort(() => Math.random() - 0.5); // Embaralha as peças
+                pecas.forEach(p => containerPecas.appendChild(p)); // Adiciona as peças ao container lateral
+
+                updatePlayerAvatarStatus(); // Atualiza o avatar ao reiniciar o jogo
+            }
+
+            function atualizarPlacar() {
+                contadorAcertosEl.textContent = acertos;
+                contadorErrosEl.textContent = erros;
+            }
+
+            // --- LÓGICA DE ARRASTAR E SOLTAR (DRAG & DROP) ---
+
+            function aoArrastar(evento) {
+                pecaArrastada = evento.target;
+                setTimeout(() => evento.target.style.opacity = '0.5', 0);
+            }
+
+            function aoArrastarSobre(evento) {
+                evento.preventDefault();
+            }
+
+            function aoSoltar(evento) {
+                evento.preventDefault();
+                pecaArrastada.style.opacity = '1';
+                const espacoAlvo = evento.target;
+
+                // Verifica se o alvo é um espaço de peça e se está vazio
+                if (espacoAlvo.classList.contains('espaco-peca') && !espacoAlvo.hasChildNodes()) {
+                    if (pecaArrastada.dataset.id === espacoAlvo.dataset.id) {
+                        // ACERTOU
+                        espacoAlvo.appendChild(pecaArrastada);
+                        pecaArrastada.draggable = false;
+                        pecaArrastada.style.cursor = 'default';
+                        acertos++;
+                        verificarVitoria();
+                    } else {
+                        // ERROU - Toca o som de erro
+                        erros++;
+                        somErro.currentTime = 0;
+                        somErro.play();
+                    }
+                    atualizarPlacar();
+                } else {
+                    // Se soltou em um lugar inválido (não é espaço de peça ou já tem peça)
+                    erros++;
+                    somErro.currentTime = 0;
+                    somErro.play();
+                    atualizarPlacar();
+                }
+            }
+
+            // --- LÓGICA DE VITÓRIA E SELOS ---
+
+            function verificarVitoria() {
+                if (acertos === TOTAL_PECAS) {
+                    somAplauso.play();
+                    modalConclusao.style.display = 'flex';
+
+                    // Adiciona o selo ao localStorage
+                    let collectedSeals = JSON.parse(localStorage.getItem('collectedSeals')) || [];
+                    if (!collectedSeals.includes(ID_SELO)) {
+                        collectedSeals.push(ID_SELO);
+                        localStorage.setItem('collectedSeals', JSON.stringify(collectedSeals));
+                        console.log(`Selo ${ID_SELO} adicionado aos selos coletados.`); // DEBUG
+                    } else {
+                        console.log(`Selo ${ID_SELO} já está coletado.`); // DEBUG
+                    }
+                    updatePlayerAvatarStatus(); // Atualiza o avatar para refletir o selo ganho
+                }
+            }
+
+            /**
+             * Atualiza o status do avatar do jogador com base nos selos coletados.
+             * Se o selo deste jogo foi coletado, adiciona a classe 'unlocked' ao avatar.
+             */
+            function updatePlayerAvatarStatus() {
+                const collectedSeals = JSON.parse(localStorage.getItem('collectedSeals')) || [];
+                if (collectedSeals.includes(ID_SELO)) {
+                    playerAvatar.classList.add('unlocked');
+                    console.log('Avatar atualizado: selo desbloqueado.'); // DEBUG
+                } else {
+                    playerAvatar.classList.remove('unlocked');
+                    console.log('Avatar atualizado: selo não desbloqueado.'); // DEBUG
+                }
+            }
+
+            // --- EVENTOS ---
+            botaoReiniciar.addEventListener('click', () => {
+                const customConfirm = (message, onConfirm, onCancel) => {
+                    const overlay = document.createElement('div');
+                    overlay.style.cssText = `
+                        position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+                        background-color: rgba(0,0,0,0.7); display: flex; justify-content: center;
+                        align-items: center; z-index: 9999;
+                    `;
+                    const box = document.createElement('div');
+                    box.style.cssText = `
+                        background-color: white; padding: 25px; border-radius: 10px;
+                        text-align: center; box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+                        max-width: 350px; width: 90%;
+                    `;
+                    const msg = document.createElement('p');
+                    msg.textContent = message;
+                    msg.style.cssText = 'margin-bottom: 20px; font-size: 1.1em; color: #333;';
+
+                    const btnContainer = document.createElement('div');
+                    btnContainer.style.cssText = 'display: flex; justify-content: center; gap: 15px;';
+
+                    const confirmBtn = document.createElement('button');
+                    confirmBtn.textContent = 'Sim';
+                    confirmBtn.style.cssText = `
+                        padding: 10px 20px; border: none; border-radius: 5px;
+                        background-color: #dc3545; color: white;
+                        font-size: 1em; cursor: pointer; transition: background-color 0.3s;
+                    `;
+                    confirmBtn.onmouseover = () => confirmBtn.style.backgroundColor = '#c82333';
+                    confirmBtn.onmouseout = () => confirmBtn.style.backgroundColor = '#dc3545';
+                    confirmBtn.onclick = () => { document.body.removeChild(overlay); onConfirm(); };
+
+                    const cancelBtn = document.createElement('button');
+                    cancelBtn.textContent = 'Não';
+                    cancelBtn.style.cssText = `
+                        padding: 10px 20px; border: none; border-radius: 5px;
+                        background-color: #007bff; color: white;
+                        font-size: 1em; cursor: pointer; transition: background-color 0.3s;
+                    `;
+                    cancelBtn.onmouseover = () => cancelBtn.style.backgroundColor = '#0056b3';
+                    cancelBtn.onmouseout = () => cancelBtn.style.backgroundColor = '#007bff';
+                    cancelBtn.onclick = () => { document.body.removeChild(overlay); if (onCancel) onCancel(); };
+
+                    btnContainer.appendChild(confirmBtn);
+                    btnContainer.appendChild(cancelBtn);
+                    box.appendChild(msg);
+                    box.appendChild(btnContainer);
+                    overlay.appendChild(box);
+                    document.body.appendChild(overlay);
+                };
+
+                customConfirm('Tem certeza que deseja reiniciar a partida? Seu progresso nesta atividade será perdido.', () => {
+                    inicializarJogo(); // Reinicia o jogo
+                });
+            });
+
+            // Evento para fechar o modal de boas-vindas
+            botaoComecarJogo.addEventListener('click', () => {
+                modalBoasVindas.style.display = 'none';
+                inicializarJogo(); // Inicia o jogo após fechar o modal
+            });
+
+            // --- INICIAR O JOGO QUANDO A PÁGINA CARREGAR ---
+            // Exibe o modal de boas-vindas ao carregar
+            modalBoasVindas.style.display = 'flex';
+            // Atualiza o status do avatar na carga inicial
+            updatePlayerAvatarStatus();
+        });
+    </script>
+</body>
+</html>
