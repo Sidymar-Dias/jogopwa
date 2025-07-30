@@ -1,0 +1,21 @@
+{
+  "name": "Despetando Virtudes",
+  "short_name": "Jogo Vistudes",
+  "description": "Portal de Acesso ao trabalho do CENAM - Desvendando Virtudes",
+  "start_url": "https://github.com/Sidymar-Dias/jogopwa/blob/main/index.html",
+  "display": "standalone",
+  "background_color": "#FFFFFF",
+  "theme_color": "#4A90E2",
+  "icons": [
+    {
+      "src": "images/icons/icon-192x192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "icone2.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}
